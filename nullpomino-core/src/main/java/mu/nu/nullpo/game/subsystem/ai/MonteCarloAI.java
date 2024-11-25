@@ -254,7 +254,37 @@ public class MonteCarloAI extends DummyAI implements Runnable {
      * @param engine   The GameEngine that owns this AI
      * @param playerID Player ID
      */
+    /* THINK BEST MOVE */
+
     public void thinkBestPosition(GameEngine engine, int playerID) {
+        resetBestPosition();
+
+        // Retrieve pieces and initial setup
+        Piece pieceNow = engine.nowPieceObject;
+        int nowX = engine.nowPieceX;
+        int nowY = engine.nowPieceY;
+        boolean holdOK = engine.isHoldOK();
+        boolean holdEmpty = (engine.holdPieceObject == null);
+        Piece pieceHold = engine.holdPieceObject;
+        Piece pieceNext = engine.getNextObject(engine.nextPieceCount);
+        Field fld = new Field(engine.field);
+
+        // Loop through depths and rotations
+        for (int depth = 0; depth < getMaxThinkDepth(); depth++) {
+            for (int rt = 0; rt < Piece.DIRECTION_COUNT; rt++) {
+                handlePieceMovement(engine, fld, pieceNow, nowX, nowY, rt, pieceNext, pieceHold, depth);
+                handleHoldPieceMovement(engine, fld, pieceHold, rt, depth, holdOK, holdEmpty);
+            }
+
+            if (bestPts > 0)
+                break; // Early exit if a good position is found
+        }
+
+        thinkLastPieceNo++;
+    }
+
+    // Reset the best position variables
+    private void resetBestPosition() {
         bestHold = false;
         bestX = 0;
         bestY = 0;
@@ -264,232 +294,133 @@ public class MonteCarloAI extends DummyAI implements Runnable {
         bestRtSub = -1;
         bestPts = 0;
         forceHold = false;
+    }
 
-        Piece pieceNow = engine.nowPieceObject;
-        int nowX = engine.nowPieceX;
-        int nowY = engine.nowPieceY;
-        boolean holdOK = engine.isHoldOK();
-        boolean holdEmpty = false;
-        Piece pieceHold = engine.holdPieceObject;
-        Piece pieceNext = engine.getNextObject(engine.nextPieceCount);
-        if (pieceHold == null) {
-            holdEmpty = true;
+    // Handle piece movement and scoring
+    private void handlePieceMovement(GameEngine engine, Field fld, Piece pieceNow, int nowX, int nowY, int rt,
+            Piece pieceNext, Piece pieceHold, int depth) {
+        int minX = pieceNow.getMostMovableLeft(nowX, nowY, rt, engine.field);
+        int maxX = pieceNow.getMostMovableRight(nowX, nowY, rt, engine.field);
+
+        for (int x = minX; x <= maxX; x++) {
+            fld.copy(engine.field);
+            int y = pieceNow.getBottom(x, nowY, rt, fld);
+
+            if (!pieceNow.checkCollision(x, y, rt, fld)) {
+                evaluatePiecePosition(engine, fld, pieceNow, x, y, rt, pieceNext, pieceHold, depth);
+                evaluateSubMovements(engine, fld, pieceNow, x, y, rt, pieceNext, pieceHold, depth);
+            }
         }
-        Field fld = new Field(engine.field);
+    }
 
-        for (int depth = 0; depth < getMaxThinkDepth(); depth++) {
-            for (int rt = 0; rt < Piece.DIRECTION_COUNT; rt++) {
-                // Peace for now
-                int minX = pieceNow.getMostMovableLeft(nowX, nowY, rt, engine.field);
-                int maxX = pieceNow.getMostMovableRight(nowX, nowY, rt, engine.field);
+    // Evaluate the main position for a piece
+    private void evaluatePiecePosition(GameEngine engine, Field fld, Piece pieceNow, int x, int y, int rt,
+            Piece pieceNext, Piece pieceHold, int depth) {
+        int pts = thinkMain(engine, x, y, rt, -1, fld, pieceNow, pieceNext, pieceHold, depth);
+        if (pts >= bestPts) {
+            updateBestPosition(x, y, rt, -1, pts);
+        }
+    }
 
-                for (int x = minX; x <= maxX; x++) {
-                    fld.copy(engine.field);
-                    int y = pieceNow.getBottom(x, nowY, rt, fld);
+    // Evaluate sub-movements like left/right shifts and rotations
+    private void evaluateSubMovements(GameEngine engine, Field fld, Piece pieceNow, int x, int y, int rt,
+            Piece pieceNext, Piece pieceHold, int depth) {
+        // Left Shift
+        evaluateShift(engine, fld, pieceNow, x - 1, y, rt, pieceNext, pieceHold, depth);
 
-                    if (!pieceNow.checkCollision(x, y, rt, fld)) {
-                        // As it is
-                        int pts = thinkMain(engine, x, y, rt, -1, fld, pieceNow, pieceNext, pieceHold, depth);
+        // Right Shift
+        evaluateShift(engine, fld, pieceNow, x + 1, y, rt, pieceNext, pieceHold, depth);
 
-                        if (pts >= bestPts) {
-                            bestHold = false;
-                            bestX = x;
-                            bestY = y;
-                            bestRt = rt;
-                            bestXSub = x;
-                            bestYSub = y;
-                            bestRtSub = -1;
-                            bestPts = pts;
-                        }
+        // Left Rotation
+        evaluateRotation(engine, fld, pieceNow, x, y, rt, -1, pieceNext, pieceHold, depth);
 
-                        if ((depth > 0) || (bestPts <= 10) || (pieceNow.id == Piece.PIECE_T)) {
-                            // Left shift
-                            fld.copy(engine.field);
-                            if (!pieceNow.checkCollision(x - 1, y, rt, fld)
-                                    && pieceNow.checkCollision(x - 1, y - 1, rt, fld)) {
-                                pts = thinkMain(engine, x - 1, y, rt, -1, fld, pieceNow, pieceNext, pieceHold, depth);
+        // Right Rotation
+        evaluateRotation(engine, fld, pieceNow, x, y, rt, 1, pieceNext, pieceHold, depth);
 
-                                if (pts > bestPts) {
-                                    bestHold = false;
-                                    bestX = x;
-                                    bestY = y;
-                                    bestRt = rt;
-                                    bestXSub = x - 1;
-                                    bestYSub = y;
-                                    bestRtSub = -1;
-                                    bestPts = pts;
-                                }
-                            }
+        // 180-degree Rotation
+        if (engine.ruleopt.rotateButtonAllowDouble) {
+            evaluateRotation(engine, fld, pieceNow, x, y, rt, 2, pieceNext, pieceHold, depth);
+        }
+    }
 
-                            // Right shift
-                            fld.copy(engine.field);
-                            if (!pieceNow.checkCollision(x + 1, y, rt, fld)
-                                    && pieceNow.checkCollision(x + 1, y - 1, rt, fld)) {
-                                pts = thinkMain(engine, x + 1, y, rt, -1, fld, pieceNow, pieceNext, pieceHold, depth);
+    // Evaluate a shift (left or right)
+    private void evaluateShift(GameEngine engine, Field fld, Piece pieceNow, int newX, int y, int rt,
+            Piece pieceNext, Piece pieceHold, int depth) {
+        if (!pieceNow.checkCollision(newX, y, rt, fld) && pieceNow.checkCollision(newX, y - 1, rt, fld)) {
+            int pts = thinkMain(engine, newX, y, rt, -1, fld, pieceNow, pieceNext, pieceHold, depth);
+            if (pts > bestPts) {
+                updateBestPosition(newX, y, rt, -1, pts);
+            }
+        }
+    }
 
-                                if (pts > bestPts) {
-                                    bestHold = false;
-                                    bestX = x;
-                                    bestY = y;
-                                    bestRt = rt;
-                                    bestXSub = x + 1;
-                                    bestYSub = y;
-                                    bestRtSub = -1;
-                                    bestPts = pts;
-                                }
-                            }
+    // Evaluate a rotation (left, right, or 180-degree)
+    private void evaluateRotation(GameEngine engine, Field fld, Piece pieceNow, int x, int y, int rt,
+            int rotationDirection, Piece pieceNext, Piece pieceHold, int depth) {
+        int rot = pieceNow.getRotateDirection(rotationDirection, rt);
+        int newX = x;
+        int newY = y;
 
-                            // Leftrotation
-                            if (!engine.isRotateButtonDefaultRight() || engine.ruleopt.rotateButtonAllowReverse) {
-                                int rot = pieceNow.getRotateDirection(-1, rt);
-                                int newX = x;
-                                int newY = y;
-                                fld.copy(engine.field);
-                                pts = 0;
+        fld.copy(engine.field);
+        int pts = 0;
 
-                                if (!pieceNow.checkCollision(x, y, rot, fld)) {
-                                    pts = thinkMain(engine, x, y, rot, rt, fld, pieceNow, pieceNext, pieceHold, depth);
-                                } else if ((engine.wallkick != null) && (engine.ruleopt.rotateWallkick)) {
-                                    boolean allowUpward = (engine.ruleopt.rotateMaxUpwardWallkick < 0) ||
-                                            (engine.nowUpwardWallkickCount < engine.ruleopt.rotateMaxUpwardWallkick);
-                                    WallkickResult kick = engine.wallkick.executeWallkick(x, y, -1, rt, rot,
-                                            allowUpward, pieceNow, fld, null);
+        if (!pieceNow.checkCollision(x, y, rot, fld)) {
+            pts = thinkMain(engine, x, y, rot, rt, fld, pieceNow, pieceNext, pieceHold, depth);
+        } else if (engine.wallkick != null && engine.ruleopt.rotateWallkick) {
+            WallkickResult kick = engine.wallkick.executeWallkick(x, y, rotationDirection, rt, rot,
+                    engine.ruleopt.rotateMaxUpwardWallkick >= 0, pieceNow, fld, null);
+            if (kick != null) {
+                newX = x + kick.offsetX;
+                newY = y + kick.offsetY;
+                pts = thinkMain(engine, newX, newY, rot, rt, fld, pieceNow, pieceNext, pieceHold, depth);
+            }
+        }
 
-                                    if (kick != null) {
-                                        newX = x + kick.offsetX;
-                                        newY = y + kick.offsetY;
-                                        pts = thinkMain(engine, newX, newY, rot, rt, fld, pieceNow, pieceNext,
-                                                pieceHold, depth);
-                                    }
-                                }
+        if (pts > bestPts) {
+            updateBestPosition(newX, newY, rt, rot, pts);
+        }
+    }
 
-                                if (pts > bestPts) {
-                                    bestHold = false;
-                                    bestX = x;
-                                    bestY = y;
-                                    bestRt = rt;
-                                    bestXSub = newX;
-                                    bestYSub = newY;
-                                    bestRtSub = rot;
-                                    bestPts = pts;
-                                }
-                            }
+    // Update the best position found so far
+    private void updateBestPosition(int x, int y, int rt, int rot, int pts) {
+        bestHold = false;
+        bestX = x;
+        bestY = y;
+        bestRt = rt;
+        bestXSub = x;
+        bestYSub = y;
+        bestRtSub = rot;
+        bestPts = pts;
+    }
 
-                            // Rightrotation
-                            if (engine.isRotateButtonDefaultRight() || engine.ruleopt.rotateButtonAllowReverse) {
-                                int rot = pieceNow.getRotateDirection(1, rt);
-                                int newX = x;
-                                int newY = y;
-                                fld.copy(engine.field);
-                                pts = 0;
+    // Handle the hold piece logic
+    private void handleHoldPieceMovement(GameEngine engine, Field fld, Piece pieceHold, int rt,
+            int depth, boolean holdOK, boolean holdEmpty) {
+        if (holdOK && pieceHold != null && depth == 0) {
+            int spawnX = engine.getSpawnPosX(engine.field, pieceHold);
+            int spawnY = engine.getSpawnPosY(pieceHold);
+            int minHoldX = pieceHold.getMostMovableLeft(spawnX, spawnY, rt, engine.field);
+            int maxHoldX = pieceHold.getMostMovableRight(spawnX, spawnY, rt, engine.field);
 
-                                if (!pieceNow.checkCollision(x, y, rot, fld)) {
-                                    pts = thinkMain(engine, x, y, rot, rt, fld, pieceNow, pieceNext, pieceHold, depth);
-                                } else if ((engine.wallkick != null) && (engine.ruleopt.rotateWallkick)) {
-                                    boolean allowUpward = (engine.ruleopt.rotateMaxUpwardWallkick < 0) ||
-                                            (engine.nowUpwardWallkickCount < engine.ruleopt.rotateMaxUpwardWallkick);
-                                    WallkickResult kick = engine.wallkick.executeWallkick(x, y, 1, rt, rot,
-                                            allowUpward, pieceNow, fld, null);
+            for (int x = minHoldX; x <= maxHoldX; x++) {
+                fld.copy(engine.field);
+                int y = pieceHold.getBottom(x, spawnY, rt, fld);
 
-                                    if (kick != null) {
-                                        newX = x + kick.offsetX;
-                                        newY = y + kick.offsetY;
-                                        pts = thinkMain(engine, newX, newY, rot, rt, fld, pieceNow, pieceNext,
-                                                pieceHold, depth);
-                                    }
-                                }
+                if (!pieceHold.checkCollision(x, y, rt, fld)) {
+                    Piece pieceNext2 = (holdEmpty) ? engine.getNextObject(engine.nextPieceCount + 1)
+                            : engine.getNextObject(engine.nextPieceCount);
+                    int pts = thinkMain(engine, x, y, rt, -1, fld, pieceHold, pieceNext2, null, depth);
 
-                                if (pts > bestPts) {
-                                    bestHold = false;
-                                    bestX = x;
-                                    bestY = y;
-                                    bestRt = rt;
-                                    bestXSub = newX;
-                                    bestYSub = newY;
-                                    bestRtSub = rot;
-                                    bestPts = pts;
-                                }
-                            }
-
-                            // 180-degree rotation
-                            if (engine.ruleopt.rotateButtonAllowDouble) {
-                                int rot = pieceNow.getRotateDirection(2, rt);
-                                int newX = x;
-                                int newY = y;
-                                fld.copy(engine.field);
-                                pts = 0;
-
-                                if (!pieceNow.checkCollision(x, y, rot, fld)) {
-                                    pts = thinkMain(engine, x, y, rot, rt, fld, pieceNow, pieceNext, pieceHold, depth);
-                                } else if ((engine.wallkick != null) && (engine.ruleopt.rotateWallkick)) {
-                                    boolean allowUpward = (engine.ruleopt.rotateMaxUpwardWallkick < 0) ||
-                                            (engine.nowUpwardWallkickCount < engine.ruleopt.rotateMaxUpwardWallkick);
-                                    WallkickResult kick = engine.wallkick.executeWallkick(x, y, 2, rt, rot,
-                                            allowUpward, pieceNow, fld, null);
-
-                                    if (kick != null) {
-                                        newX = x + kick.offsetX;
-                                        newY = y + kick.offsetY;
-                                        pts = thinkMain(engine, newX, newY, rot, rt, fld, pieceNow, pieceNext,
-                                                pieceHold, depth);
-                                    }
-                                }
-
-                                if (pts > bestPts) {
-                                    bestHold = false;
-                                    bestX = x;
-                                    bestY = y;
-                                    bestRt = rt;
-                                    bestXSub = newX;
-                                    bestYSub = newY;
-                                    bestRtSub = rot;
-                                    bestPts = pts;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (pieceHold == null) {
-                    pieceHold = engine.getNextObject(engine.nextPieceCount);
-                }
-
-                if ((holdOK == true) && (pieceHold != null) && (depth == 0)) {
-                    int spawnX = engine.getSpawnPosX(engine.field, pieceHold);
-                    int spawnY = engine.getSpawnPosY(pieceHold);
-                    int minHoldX = pieceHold.getMostMovableLeft(spawnX, spawnY, rt, engine.field);
-                    int maxHoldX = pieceHold.getMostMovableRight(spawnX, spawnY, rt, engine.field);
-
-                    for (int x = minHoldX; x <= maxHoldX; x++) {
-                        fld.copy(engine.field);
-                        int y = pieceHold.getBottom(x, spawnY, rt, fld);
-
-                        if (!pieceHold.checkCollision(x, y, rt, fld)) {
-                            Piece pieceNext2 = engine.getNextObject(engine.nextPieceCount);
-                            if (holdEmpty)
-                                pieceNext2 = engine.getNextObject(engine.nextPieceCount + 1);
-
-                            int pts = thinkMain(engine, x, y, rt, -1, fld, pieceHold, pieceNext2, null, depth);
-
-                            if (pts > bestPts) {
-                                bestHold = true;
-                                bestX = x;
-                                bestY = y;
-                                bestRt = rt;
-                                bestRtSub = -1;
-                                bestPts = pts;
-                            }
-                        }
+                    if (pts > bestPts) {
+                        updateBestPosition(x, y, rt, -1, pts);
+                        bestHold = true;
                     }
                 }
             }
-
-            if (bestPts > 0)
-                break;
         }
-
-        thinkLastPieceNo++;
     }
+
+    /* THINK BEST MOVE */
 
     /**
      * Think routine
