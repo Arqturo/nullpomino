@@ -35,16 +35,14 @@ import mu.nu.nullpo.game.component.WallkickResult;
 import mu.nu.nullpo.game.play.GameEngine;
 import mu.nu.nullpo.game.play.GameManager;
 
-import java.util.Random;
-
 import org.apache.log4j.Logger;
 
 /**
  * CommonAI
  */
-public class MonteCarloAIDummy extends DummyAI implements Runnable {
+public class MonteCarloAIDummyBackup extends DummyAI implements Runnable {
     /** Log */
-    static Logger log = Logger.getLogger(MonteCarloAIDummy.class);
+    static Logger log = Logger.getLogger(MonteCarloAIDummyBackup.class);
 
     /** After that I was groundedX-coordinate */
     public int bestXSub;
@@ -298,23 +296,16 @@ public class MonteCarloAIDummy extends DummyAI implements Runnable {
         forceHold = false;
     }
 
-    public int getNumberOfExperiments() {
-        return 12;
-    }
-
+    // Handle piece movement and scoring
     private void handlePieceMovement(GameEngine engine, Field fld, Piece pieceNow, int nowX, int nowY, int rt,
             Piece pieceNext, Piece pieceHold, int depth) {
         int minX = pieceNow.getMostMovableLeft(nowX, nowY, rt, engine.field);
         int maxX = pieceNow.getMostMovableRight(nowX, nowY, rt, engine.field);
 
-        System.out.println("Left " + minX + " right " + maxX);
+        System.out.println("Left " + minX + "right " + maxX);
 
-        int numExperiments = getNumberOfExperiments();
-
-        // Generate random x-values numExperiments times
-        Random random = new Random();
-        for (int i = 0; i < numExperiments; i++) {
-            int x = minX + random.nextInt(maxX - minX + 1);
+        for (int x = minX; x <= maxX; x++) {
+            fld.copy(engine.field);
             int y = pieceNow.getBottom(x, nowY, rt, fld);
 
             if (!pieceNow.checkCollision(x, y, rt, fld)) {

@@ -35,14 +35,16 @@ import mu.nu.nullpo.game.component.WallkickResult;
 import mu.nu.nullpo.game.play.GameEngine;
 import mu.nu.nullpo.game.play.GameManager;
 
+import java.util.Random;
+
 import org.apache.log4j.Logger;
 
 /**
  * CommonAI
  */
-public class MonteCarloAIDummy extends DummyAI implements Runnable {
+public class MCTS extends DummyAI implements Runnable {
     /** Log */
-    static Logger log = Logger.getLogger(MonteCarloAIDummy.class);
+    static Logger log = Logger.getLogger(MCTS.class);
 
     /** After that I was groundedX-coordinate */
     public int bestXSub;
@@ -85,7 +87,7 @@ public class MonteCarloAIDummy extends DummyAI implements Runnable {
      */
     @Override
     public String getName() {
-        return "MONTECARLOAIDUMMY";
+        return "MCTS";
     }
 
     /*
@@ -296,16 +298,23 @@ public class MonteCarloAIDummy extends DummyAI implements Runnable {
         forceHold = false;
     }
 
-    // Handle piece movement and scoring
+    public int getNumberOfExperiments() {
+        return 12;
+    }
+
     private void handlePieceMovement(GameEngine engine, Field fld, Piece pieceNow, int nowX, int nowY, int rt,
             Piece pieceNext, Piece pieceHold, int depth) {
         int minX = pieceNow.getMostMovableLeft(nowX, nowY, rt, engine.field);
         int maxX = pieceNow.getMostMovableRight(nowX, nowY, rt, engine.field);
 
-        System.out.println("Left " + minX + "right " + maxX);
+        System.out.println("Left " + minX + " right " + maxX);
 
-        for (int x = minX; x <= maxX; x++) {
-            fld.copy(engine.field);
+        int numExperiments = getNumberOfExperiments();
+
+        // Generate random x-values numExperiments times
+        Random random = new Random();
+        for (int i = 0; i < numExperiments; i++) {
+            int x = minX + random.nextInt(maxX - minX + 1);
             int y = pieceNow.getBottom(x, nowY, rt, fld);
 
             if (!pieceNow.checkCollision(x, y, rt, fld)) {
@@ -598,11 +607,28 @@ public class MonteCarloAIDummy extends DummyAI implements Runnable {
         return 2;
     }
 
+    public int MinDelay() {
+        return 1000;
+    }
+
+    public int MaxDelay() {
+        return 3000;
+    }
+
+    public int getRandomDelay() {
+        int min = MinDelay();
+        int max = MaxDelay();
+
+        Random random = new Random();
+
+        return random.nextInt(max - min + 1) + min;
+    }
+
     /*
      * Processing of the thread
      */
     public void run() {
-        log.info("MonteCarloAIDummy: Thread start");
+        log.info("MCTS: Thread start");
         threadRunning = true;
 
         while (threadRunning) {
@@ -612,10 +638,12 @@ public class MonteCarloAIDummy extends DummyAI implements Runnable {
                 try {
                     thinkBestPosition(gEngine, gEngine.playerID);
                 } catch (Throwable e) {
-                    log.debug("MonteCarloAIDummy: thinkBestPosition Failed", e);
+                    log.debug("MCTS: thinkBestPosition Failed", e);
                 }
                 thinking = false;
             }
+
+            thinkDelay = getRandomDelay();
 
             if (thinkDelay > 0) {
                 try {
