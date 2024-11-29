@@ -59,7 +59,7 @@ public class MCTSDIII extends MCTSD {
 
     @Override
     public int MinNumberOfOptions() {
-        return 100;
+        return 7;
     }
 
     @Override
