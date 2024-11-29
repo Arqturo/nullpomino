@@ -313,7 +313,6 @@ public class MCTSD extends DummyAI implements Runnable {
                     Collections.shuffle(xValues);
                 }
 
-                // Step 6: Process remaining elements (if any)
                 for (int x : xValues) {
                     fld.copy(engine.field);
                     int y = pieceNow.getBottom(x, nowY, rt, fld);
