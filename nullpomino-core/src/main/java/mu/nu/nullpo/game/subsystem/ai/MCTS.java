@@ -680,7 +680,7 @@ public class MCTS extends DummyAI implements Runnable {
     }
 
     public int getNumberOfExperiments() {
-        return 12;
+        return 4;
     }
 
     public int MinDelay() {

@@ -700,11 +700,11 @@ public class MCTSD extends DummyAI implements Runnable {
     }
 
     public int MinNumberOfOptions() {
-        return 7;
+        return 3;
     }
 
     public int MaxDiscardNums() {
-        return 3;
+        return 7;
     }
 
     public int MinDelay() {
