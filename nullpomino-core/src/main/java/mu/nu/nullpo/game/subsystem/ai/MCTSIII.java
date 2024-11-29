@@ -64,7 +64,7 @@ public class MCTSIII extends MCTS {
 
     @Override
     public int getNumberOfExperiments() {
-        return 22;
+        return 100;
     }
 
     @Override

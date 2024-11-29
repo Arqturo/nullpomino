@@ -326,21 +326,16 @@ public class MCTSD extends DummyAI implements Runnable {
         while (xValues.size() > options) {
             for (int i = 0; i < discard && !xValues.isEmpty(); i++) {
                 int x = xValues.remove(0); // Take the first element in the shuffled list
-
-                int y = pieceNow.getBottom(x, nowY, rt, fld);
-                if (!pieceNow.checkCollision(x, y, rt, fld)) {
-                    evaluatePiecePosition(engine, fld, pieceNow, x, y, rt, pieceNext, pieceHold, depth);
-                    evaluateSubMovements(engine, fld, pieceNow, x, y, rt, pieceNext, pieceHold, depth);
-                }
             }
 
             // Shuffle again to ensure randomness in subsequent iterations
             Collections.shuffle(xValues);
         }
 
-        // Step 6: Process remaining elements (if any) when the list size is <= 7
+        // Step 6: Process remaining elements (if any)
         for (int x : xValues) {
             int y = pieceNow.getBottom(x, nowY, rt, fld);
+
             if (!pieceNow.checkCollision(x, y, rt, fld)) {
                 evaluatePiecePosition(engine, fld, pieceNow, x, y, rt, pieceNext, pieceHold, depth);
                 evaluateSubMovements(engine, fld, pieceNow, x, y, rt, pieceNext, pieceHold, depth);
