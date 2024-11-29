@@ -34,7 +34,7 @@ import mu.nu.nullpo.game.component.Piece;
 import mu.nu.nullpo.game.component.WallkickResult;
 import mu.nu.nullpo.game.play.GameEngine;
 import mu.nu.nullpo.game.play.GameManager;
-import mu.nu.nullpo.game.subsystem.ai.MCTS;
+import mu.nu.nullpo.game.subsystem.ai.MCTSD;
 
 import java.util.Random;
 
@@ -43,9 +43,9 @@ import org.apache.log4j.Logger;
 /**
  * CommonAI
  */
-public class MCTSIII extends MCTS {
+public class MCTSDIII extends MCTSD {
     /** Log */
-    static Logger log = Logger.getLogger(MCTSIII.class);
+    static Logger log = Logger.getLogger(MCTSDIII.class);
 
     public Thread thread;
 
@@ -54,7 +54,17 @@ public class MCTSIII extends MCTS {
      */
     @Override
     public String getName() {
-        return "MCTSIII";
+        return "MCTSDIII";
+    }
+
+    @Override
+    public int MinNumberOfOptions() {
+        return 9;
+    }
+
+    @Override
+    public int MaxDiscardNums() {
+        return 1;
     }
 
     @Override
@@ -63,13 +73,8 @@ public class MCTSIII extends MCTS {
     }
 
     @Override
-    public int getNumberOfExperiments() {
-        return 22;
-    }
-
-    @Override
     public int MinDelay() {
-        return 250;
+        return 0;
     }
 
     @Override
@@ -81,7 +86,7 @@ public class MCTSIII extends MCTS {
      * Processing of the thread
      */
     public void run() {
-        log.info("MCTSIII: Thread start");
+        log.info("MCTSDIII: Thread start");
         threadRunning = true;
 
         while (threadRunning) {
@@ -91,7 +96,7 @@ public class MCTSIII extends MCTS {
                 try {
                     thinkBestPosition(gEngine, gEngine.playerID);
                 } catch (Throwable e) {
-                    log.debug("MCTSIII: thinkBestPosition Failed", e);
+                    log.debug("MCTSDIII: thinkBestPosition Failed", e);
                 }
                 thinking = false;
             }
@@ -108,6 +113,6 @@ public class MCTSIII extends MCTS {
         }
 
         threadRunning = false;
-        log.info("MCTSIII: Thread end");
+        log.info("MCTSDIII: Thread end");
     }
 }

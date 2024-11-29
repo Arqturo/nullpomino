@@ -64,7 +64,7 @@ public class MCTSII extends MCTS {
 
     @Override
     public int getMaxThinkDepth() {
-        return 4;
+        return 2;
     }
 
     @Override

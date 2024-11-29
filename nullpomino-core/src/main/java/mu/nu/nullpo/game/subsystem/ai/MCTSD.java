@@ -26,7 +26,13 @@
     ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
     POSSIBILITY OF SUCH DAMAGE.
 */
+
 package mu.nu.nullpo.game.subsystem.ai;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
 
 import mu.nu.nullpo.game.component.Controller;
 import mu.nu.nullpo.game.component.Field;
@@ -40,9 +46,9 @@ import org.apache.log4j.Logger;
 /**
  * CommonAI
  */
-public class MTSD extends DummyAI implements Runnable {
+public class MCTSD extends DummyAI implements Runnable {
     /** Log */
-    static Logger log = Logger.getLogger(MTSD.class);
+    static Logger log = Logger.getLogger(MCTSD.class);
 
     /** After that I was groundedX-coordinate */
     public int bestXSub;
@@ -85,7 +91,7 @@ public class MTSD extends DummyAI implements Runnable {
      */
     @Override
     public String getName() {
-        return "SBASIC";
+        return "MCTSD";
     }
 
     /*
@@ -297,17 +303,44 @@ public class MTSD extends DummyAI implements Runnable {
     }
 
     // Handle piece movement and scoring
+
     private void handlePieceMovement(GameEngine engine, Field fld, Piece pieceNow, int nowX, int nowY, int rt,
             Piece pieceNext, Piece pieceHold, int depth) {
+
         int minX = pieceNow.getMostMovableLeft(nowX, nowY, rt, engine.field);
         int maxX = pieceNow.getMostMovableRight(nowX, nowY, rt, engine.field);
 
-        System.out.println("Left " + minX + "right " + maxX);
+        int options = MinNumberOfOptions();
+        int discard = MaxDiscardNums();
 
+        System.out.println("Left " + minX + " right " + maxX);
+
+        List<Integer> xValues = new ArrayList<>();
         for (int x = minX; x <= maxX; x++) {
-            fld.copy(engine.field);
-            int y = pieceNow.getBottom(x, nowY, rt, fld);
+            xValues.add(x);
+        }
 
+        Collections.shuffle(xValues);
+
+        // elements
+        while (xValues.size() > options) {
+            for (int i = 0; i < discard && !xValues.isEmpty(); i++) {
+                int x = xValues.remove(0); // Take the first element in the shuffled list
+
+                int y = pieceNow.getBottom(x, nowY, rt, fld);
+                if (!pieceNow.checkCollision(x, y, rt, fld)) {
+                    evaluatePiecePosition(engine, fld, pieceNow, x, y, rt, pieceNext, pieceHold, depth);
+                    evaluateSubMovements(engine, fld, pieceNow, x, y, rt, pieceNext, pieceHold, depth);
+                }
+            }
+
+            // Shuffle again to ensure randomness in subsequent iterations
+            Collections.shuffle(xValues);
+        }
+
+        // Step 6: Process remaining elements (if any) when the list size is <= 7
+        for (int x : xValues) {
+            int y = pieceNow.getBottom(x, nowY, rt, fld);
             if (!pieceNow.checkCollision(x, y, rt, fld)) {
                 evaluatePiecePosition(engine, fld, pieceNow, x, y, rt, pieceNext, pieceHold, depth);
                 evaluateSubMovements(engine, fld, pieceNow, x, y, rt, pieceNext, pieceHold, depth);
@@ -398,16 +431,46 @@ public class MTSD extends DummyAI implements Runnable {
     // Handle the hold piece logic
     private void handleHoldPieceMovement(GameEngine engine, Field fld, Piece pieceHold, int rt,
             int depth, boolean holdOK, boolean holdEmpty) {
+
+        int options = MinNumberOfOptions();
+        int discard = MaxDiscardNums();
+
         if (holdOK && pieceHold != null && depth == 0) {
             int spawnX = engine.getSpawnPosX(engine.field, pieceHold);
             int spawnY = engine.getSpawnPosY(pieceHold);
             int minHoldX = pieceHold.getMostMovableLeft(spawnX, spawnY, rt, engine.field);
             int maxHoldX = pieceHold.getMostMovableRight(spawnX, spawnY, rt, engine.field);
 
+            List<Integer> xValues = new ArrayList<>();
             for (int x = minHoldX; x <= maxHoldX; x++) {
-                fld.copy(engine.field);
-                int y = pieceHold.getBottom(x, spawnY, rt, fld);
+                xValues.add(x);
+            }
 
+            Collections.shuffle(xValues);
+
+            while (xValues.size() > options) {
+                for (int i = 0; i < discard && !xValues.isEmpty(); i++) {
+                    int x = xValues.remove(0);
+
+                    int y = pieceHold.getBottom(x, spawnY, rt, fld);
+
+                    if (!pieceHold.checkCollision(x, y, rt, fld)) {
+                        Piece pieceNext2 = (holdEmpty) ? engine.getNextObject(engine.nextPieceCount + 1)
+                                : engine.getNextObject(engine.nextPieceCount);
+                        int pts = thinkMain(engine, x, y, rt, -1, fld, pieceHold, pieceNext2, null, depth);
+
+                        if (pts > bestPts) {
+                            updateBestPosition(x, y, rt, -1, pts);
+                            bestHold = true;
+                        }
+                    }
+                }
+
+                Collections.shuffle(xValues);
+            }
+
+            for (int x : xValues) {
+                int y = pieceHold.getBottom(x, spawnY, rt, fld);
                 if (!pieceHold.checkCollision(x, y, rt, fld)) {
                     Piece pieceNext2 = (holdEmpty) ? engine.getNextObject(engine.nextPieceCount + 1)
                             : engine.getNextObject(engine.nextPieceCount);
@@ -598,11 +661,36 @@ public class MTSD extends DummyAI implements Runnable {
         return 2;
     }
 
+    public int MinNumberOfOptions() {
+        return 7;
+    }
+
+    public int MaxDiscardNums() {
+        return 3;
+    }
+
+    public int MinDelay() {
+        return 1000;
+    }
+
+    public int MaxDelay() {
+        return 1000;
+    }
+
+    public int getRandomDelay() {
+        int min = MinDelay();
+        int max = MaxDelay();
+
+        Random random = new Random();
+
+        return random.nextInt(max) + min;
+    }
+
     /*
      * Processing of the thread
      */
     public void run() {
-        log.info("SBasic: Thread start");
+        log.info("MCTSD: Thread start");
         threadRunning = true;
 
         while (threadRunning) {
@@ -612,10 +700,12 @@ public class MTSD extends DummyAI implements Runnable {
                 try {
                     thinkBestPosition(gEngine, gEngine.playerID);
                 } catch (Throwable e) {
-                    log.debug("SBasic: thinkBestPosition Failed", e);
+                    log.debug("MCTSD: thinkBestPosition Failed", e);
                 }
                 thinking = false;
             }
+
+            thinkDelay = getRandomDelay();
 
             if (thinkDelay > 0) {
                 try {
@@ -627,6 +717,6 @@ public class MTSD extends DummyAI implements Runnable {
         }
 
         threadRunning = false;
-        log.info("SBasic: Thread end");
+        log.info("MCTSD: Thread end");
     }
 }

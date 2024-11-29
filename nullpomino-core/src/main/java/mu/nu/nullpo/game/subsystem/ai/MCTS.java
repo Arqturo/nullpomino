@@ -600,7 +600,7 @@ public class MCTS extends DummyAI implements Runnable {
      * @return MaximumCompromise level
      */
     public int getMaxThinkDepth() {
-        return 3;
+        return 2;
     }
 
     public int getNumberOfExperiments() {
