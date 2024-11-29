@@ -35,16 +35,14 @@ import mu.nu.nullpo.game.component.WallkickResult;
 import mu.nu.nullpo.game.play.GameEngine;
 import mu.nu.nullpo.game.play.GameManager;
 
-import java.util.Random;
-
 import org.apache.log4j.Logger;
 
 /**
  * CommonAI
  */
-public class MCTS extends DummyAI implements Runnable {
+public class SBasic extends DummyAI implements Runnable {
     /** Log */
-    static Logger log = Logger.getLogger(MCTS.class);
+    static Logger log = Logger.getLogger(SBasic.class);
 
     /** After that I was groundedX-coordinate */
     public int bestXSub;
@@ -87,7 +85,7 @@ public class MCTS extends DummyAI implements Runnable {
      */
     @Override
     public String getName() {
-        return "MCTS";
+        return "SBASIC";
     }
 
     /*
@@ -298,19 +296,16 @@ public class MCTS extends DummyAI implements Runnable {
         forceHold = false;
     }
 
+    // Handle piece movement and scoring
     private void handlePieceMovement(GameEngine engine, Field fld, Piece pieceNow, int nowX, int nowY, int rt,
             Piece pieceNext, Piece pieceHold, int depth) {
         int minX = pieceNow.getMostMovableLeft(nowX, nowY, rt, engine.field);
         int maxX = pieceNow.getMostMovableRight(nowX, nowY, rt, engine.field);
 
-        System.out.println("Left " + minX + " right " + maxX);
+        System.out.println("Left " + minX + "right " + maxX);
 
-        int numExperiments = getNumberOfExperiments();
-
-        // Generate random x-values numExperiments times
-        Random random = new Random();
-        for (int i = 0; i < numExperiments; i++) {
-            int x = minX + random.nextInt(maxX - minX + 1);
+        for (int x = minX; x <= maxX; x++) {
+            fld.copy(engine.field);
             int y = pieceNow.getBottom(x, nowY, rt, fld);
 
             if (!pieceNow.checkCollision(x, y, rt, fld)) {
@@ -600,35 +595,14 @@ public class MCTS extends DummyAI implements Runnable {
      * @return MaximumCompromise level
      */
     public int getMaxThinkDepth() {
-        return 3;
-    }
-
-    public int getNumberOfExperiments() {
-        return 12;
-    }
-
-    public int MinDelay() {
-        return 1000;
-    }
-
-    public int MaxDelay() {
-        return 1000;
-    }
-
-    public int getRandomDelay() {
-        int min = MinDelay();
-        int max = MaxDelay();
-
-        Random random = new Random();
-
-        return random.nextInt(max) + min;
+        return 2;
     }
 
     /*
      * Processing of the thread
      */
     public void run() {
-        log.info("MCTS: Thread start");
+        log.info("SBasic: Thread start");
         threadRunning = true;
 
         while (threadRunning) {
@@ -638,12 +612,10 @@ public class MCTS extends DummyAI implements Runnable {
                 try {
                     thinkBestPosition(gEngine, gEngine.playerID);
                 } catch (Throwable e) {
-                    log.debug("MCTS: thinkBestPosition Failed", e);
+                    log.debug("SBasic: thinkBestPosition Failed", e);
                 }
                 thinking = false;
             }
-
-            thinkDelay = getRandomDelay();
 
             if (thinkDelay > 0) {
                 try {
@@ -655,6 +627,6 @@ public class MCTS extends DummyAI implements Runnable {
         }
 
         threadRunning = false;
-        log.info("MonteCarloAIDummy: Thread end");
+        log.info("SBasic: Thread end");
     }
 }

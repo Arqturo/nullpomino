@@ -43,9 +43,9 @@ import org.apache.log4j.Logger;
 /**
  * CommonAI
  */
-public class MCTSII extends MCTS {
+public class MCTSIII extends MCTS {
     /** Log */
-    static Logger log = Logger.getLogger(MCTSII.class);
+    static Logger log = Logger.getLogger(MCTSIII.class);
 
     public Thread thread;
 
@@ -54,22 +54,22 @@ public class MCTSII extends MCTS {
      */
     @Override
     public String getName() {
-        return "MCTSII";
-    }
-
-    @Override
-    public int getNumberOfExperiments() {
-        return 16;
+        return "MCTSIII";
     }
 
     @Override
     public int getMaxThinkDepth() {
-        return 4;
+        return 5;
+    }
+
+    @Override
+    public int getNumberOfExperiments() {
+        return 22;
     }
 
     @Override
     public int MinDelay() {
-        return 500;
+        return 250;
     }
 
     @Override
@@ -81,7 +81,7 @@ public class MCTSII extends MCTS {
      * Processing of the thread
      */
     public void run() {
-        log.info("MCTSII: Thread start");
+        log.info("MCTSIII: Thread start");
         threadRunning = true;
 
         while (threadRunning) {
@@ -91,7 +91,7 @@ public class MCTSII extends MCTS {
                 try {
                     thinkBestPosition(gEngine, gEngine.playerID);
                 } catch (Throwable e) {
-                    log.debug("MCTSII: thinkBestPosition Failed", e);
+                    log.debug("MCTSIII: thinkBestPosition Failed", e);
                 }
                 thinking = false;
             }
@@ -108,6 +108,6 @@ public class MCTSII extends MCTS {
         }
 
         threadRunning = false;
-        log.info("MCTSII: Thread end");
+        log.info("MCTSIII: Thread end");
     }
 }

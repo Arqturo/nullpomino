@@ -40,9 +40,9 @@ import org.apache.log4j.Logger;
 /**
  * CommonAI
  */
-public class MonteCarloAIDummyBackup extends DummyAI implements Runnable {
+public class MTSD extends DummyAI implements Runnable {
     /** Log */
-    static Logger log = Logger.getLogger(MonteCarloAIDummyBackup.class);
+    static Logger log = Logger.getLogger(MTSD.class);
 
     /** After that I was groundedX-coordinate */
     public int bestXSub;
@@ -85,7 +85,7 @@ public class MonteCarloAIDummyBackup extends DummyAI implements Runnable {
      */
     @Override
     public String getName() {
-        return "MONTECARLOAIDUMMY";
+        return "SBASIC";
     }
 
     /*
@@ -602,7 +602,7 @@ public class MonteCarloAIDummyBackup extends DummyAI implements Runnable {
      * Processing of the thread
      */
     public void run() {
-        log.info("MonteCarloAIDummy: Thread start");
+        log.info("SBasic: Thread start");
         threadRunning = true;
 
         while (threadRunning) {
@@ -612,7 +612,7 @@ public class MonteCarloAIDummyBackup extends DummyAI implements Runnable {
                 try {
                     thinkBestPosition(gEngine, gEngine.playerID);
                 } catch (Throwable e) {
-                    log.debug("MonteCarloAIDummy: thinkBestPosition Failed", e);
+                    log.debug("SBasic: thinkBestPosition Failed", e);
                 }
                 thinking = false;
             }
@@ -627,6 +627,6 @@ public class MonteCarloAIDummyBackup extends DummyAI implements Runnable {
         }
 
         threadRunning = false;
-        log.info("MonteCarloAIDummy: Thread end");
+        log.info("SBasic: Thread end");
     }
 }
