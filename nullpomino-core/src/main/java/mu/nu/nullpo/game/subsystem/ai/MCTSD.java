@@ -426,46 +426,16 @@ public class MCTSD extends DummyAI implements Runnable {
     // Handle the hold piece logic
     private void handleHoldPieceMovement(GameEngine engine, Field fld, Piece pieceHold, int rt,
             int depth, boolean holdOK, boolean holdEmpty) {
-
-        int options = MinNumberOfOptions();
-        int discard = MaxDiscardNums();
-
         if (holdOK && pieceHold != null && depth == 0) {
             int spawnX = engine.getSpawnPosX(engine.field, pieceHold);
             int spawnY = engine.getSpawnPosY(pieceHold);
             int minHoldX = pieceHold.getMostMovableLeft(spawnX, spawnY, rt, engine.field);
             int maxHoldX = pieceHold.getMostMovableRight(spawnX, spawnY, rt, engine.field);
 
-            List<Integer> xValues = new ArrayList<>();
             for (int x = minHoldX; x <= maxHoldX; x++) {
-                xValues.add(x);
-            }
-
-            Collections.shuffle(xValues);
-
-            while (xValues.size() > options) {
-                for (int i = 0; i < discard && !xValues.isEmpty(); i++) {
-                    int x = xValues.remove(0);
-
-                    int y = pieceHold.getBottom(x, spawnY, rt, fld);
-
-                    if (!pieceHold.checkCollision(x, y, rt, fld)) {
-                        Piece pieceNext2 = (holdEmpty) ? engine.getNextObject(engine.nextPieceCount + 1)
-                                : engine.getNextObject(engine.nextPieceCount);
-                        int pts = thinkMain(engine, x, y, rt, -1, fld, pieceHold, pieceNext2, null, depth);
-
-                        if (pts > bestPts) {
-                            updateBestPosition(x, y, rt, -1, pts);
-                            bestHold = true;
-                        }
-                    }
-                }
-
-                Collections.shuffle(xValues);
-            }
-
-            for (int x : xValues) {
+                fld.copy(engine.field);
                 int y = pieceHold.getBottom(x, spawnY, rt, fld);
+
                 if (!pieceHold.checkCollision(x, y, rt, fld)) {
                     Piece pieceNext2 = (holdEmpty) ? engine.getNextObject(engine.nextPieceCount + 1)
                             : engine.getNextObject(engine.nextPieceCount);
