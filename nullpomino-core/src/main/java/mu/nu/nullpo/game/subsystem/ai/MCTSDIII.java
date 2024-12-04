@@ -101,8 +101,6 @@ public class MCTSDIII extends MCTSD {
                 thinking = false;
             }
 
-            thinkDelay = getRandomDelay();
-
             if (thinkDelay > 0) {
                 try {
                     Thread.sleep(thinkDelay);
