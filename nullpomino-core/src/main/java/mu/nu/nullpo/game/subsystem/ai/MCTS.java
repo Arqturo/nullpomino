@@ -350,7 +350,11 @@ public class MCTS extends BasicAI {
                 thinkRequest = false;
                 thinking = true;
                 try {
+                    long startTime = System.currentTimeMillis();
                     thinkBestPosition(gEngine, gEngine.playerID);
+                    long endTime = System.currentTimeMillis();
+                    long executionTime = endTime - startTime;
+                    System.out.println("Execution time: " + executionTime + " ms");
                 } catch (Throwable e) {
                     log.debug("MCTS: thinkBestPosition Failed", e);
                 }
