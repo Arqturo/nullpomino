@@ -98,7 +98,8 @@ public class MCTSDIII extends MCTSD {
                     thinkBestPosition(gEngine, gEngine.playerID);
                     long endTime = System.currentTimeMillis();
                     long executionTime = endTime - startTime;
-                    System.out.println("Execution time: " + executionTime + " ms");
+                    System.out.println("" + executionTime + ",");
+
                 } catch (Throwable e) {
                     log.debug("MCTSDIII: thinkBestPosition Failed", e);
                 }

@@ -93,7 +93,8 @@ public class MCTSIII extends MCTS {
                     thinkBestPosition(gEngine, gEngine.playerID);
                     long endTime = System.currentTimeMillis();
                     long executionTime = endTime - startTime;
-                    System.out.println("Execution time: " + executionTime + " ms");
+                    System.out.println("" + executionTime + ",");
+
                 } catch (Throwable e) {
                     log.debug("MCTSIII: thinkBestPosition Failed", e);
                 }

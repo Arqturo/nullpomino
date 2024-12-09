@@ -376,7 +376,8 @@ public class MCTSD extends BasicAI implements Runnable {
                     thinkBestPosition(gEngine, gEngine.playerID);
                     long endTime = System.currentTimeMillis();
                     long executionTime = endTime - startTime;
-                    System.out.println("Execution time: " + executionTime + " ms");
+                    System.out.println("" + executionTime + ",");
+
                 } catch (Throwable e) {
                     log.debug("MCTSD: thinkBestPosition Failed", e);
                 }
