@@ -97,9 +97,6 @@ public class MCTSD extends BasicAI implements Runnable {
 
                 int options = MinNumberOfOptions();
                 int discard = MaxDiscardNums();
-
-                System.out.println("Left " + minX + " right " + maxX);
-
                 List<Integer> xValues = new ArrayList<>();
                 for (int x = minX; x <= maxX; x++) {
                     xValues.add(x);
