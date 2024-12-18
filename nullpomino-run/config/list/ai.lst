@@ -3,6 +3,12 @@ mu.nu.nullpo.game.subsystem.ai.MCTS
 mu.nu.nullpo.game.subsystem.ai.MCTSII
 mu.nu.nullpo.game.subsystem.ai.MCTSIII
 mu.nu.nullpo.game.subsystem.ai.TSpinAI
+mu.nu.nullpo.game.subsystem.ai.TSpinAI_M1
+mu.nu.nullpo.game.subsystem.ai.TSpinAI_M2
+mu.nu.nullpo.game.subsystem.ai.TSpinAI_M3
+mu.nu.nullpo.game.subsystem.ai.TSpinAI_MD1
+mu.nu.nullpo.game.subsystem.ai.TSpinAI_MD2
+mu.nu.nullpo.game.subsystem.ai.TSpinAI_MD3
 net.tetrisconcept.poochy.nullpomino.ai.PoochyBot
 net.tetrisconcept.poochy.nullpomino.ai.PoochyBotDefensive
 mu.nu.nullpo.game.subsystem.ai.RanksAI
