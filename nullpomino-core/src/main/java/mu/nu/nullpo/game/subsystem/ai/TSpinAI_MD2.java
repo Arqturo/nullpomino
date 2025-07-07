@@ -37,7 +37,7 @@ import mu.nu.nullpo.game.play.GameEngine;
 /**
  * T-SpinHaveAI (WIP)
  */
-public class TSpinAI_MD2 extends MCTSD {
+public class TSpinAI_MD2 extends MCTSDII {
 	@Override
 	public String getName() {
 		return "TSpinAI_MD2";
